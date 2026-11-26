@@ -71,7 +71,11 @@ class Captain::Assistant::ResponseRewriter
         response_schema: Captain::ResponseSchema,
         **Captain::ResponsesConfig.options(model: model, temperature: 0)
       )
-      Agents::Runner.with_agents(agent).tap { |runner| install_instrumentation(runner) }
+      if @assistant.account.feature_enabled?('captain_byom_routing')
+        Captain::Llm::RoutedAgentRunner.new([agent], assistant: @assistant)
+      else
+        Agents::Runner.with_agents(agent).tap { |runner| install_instrumentation(runner) }
+      end
     end
   end
 

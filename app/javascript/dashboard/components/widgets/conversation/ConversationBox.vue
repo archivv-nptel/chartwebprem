@@ -4,6 +4,7 @@ import ConversationHeader from './ConversationHeader.vue';
 import DashboardAppFrame from '../DashboardApp/Frame.vue';
 import EmptyState from './EmptyState/EmptyState.vue';
 import MessagesView from './MessagesView.vue';
+import ConversationApprovals from 'dashboard/components-next/captain/hitl/ConversationApprovals.vue';
 
 export default {
   components: {
@@ -11,6 +12,7 @@ export default {
     DashboardAppFrame,
     EmptyState,
     MessagesView,
+    ConversationApprovals,
   },
   props: {
     inboxId: {
@@ -122,6 +124,11 @@ export default {
         is-compact
       />
     </woot-tabs>
+    <ConversationApprovals
+      v-if="currentChat.id"
+      v-show="!activeIndex"
+      :conversation-id="currentChat.id"
+    />
     <div v-show="!activeIndex" class="flex h-full min-h-0 m-0">
       <MessagesView
         v-if="currentChat.id"

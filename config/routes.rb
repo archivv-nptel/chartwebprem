@@ -47,6 +47,8 @@ Rails.application.routes.draw do
   get '/api', to: 'api#index'
   namespace :api, defaults: { format: 'json' } do
     namespace :v1 do
+      match 'mcp', to: 'mcp/endpoints#handle', via: [:post, :get, :delete], format: false if ChatwootApp.enterprise?
+
       # ----------------------------------
       # start of account scoped api routes
       resources :accounts, only: [:create, :show, :update] do
@@ -81,6 +83,28 @@ Rails.application.routes.draw do
             post :bulk_create, on: :collection
           end
           namespace :captain do
+            if ChatwootApp.enterprise?
+              resources :action_approvals, only: [:index, :show] do
+                post :approve, on: :member
+                post :reject, on: :member
+              end
+              resources :playbooks do
+                member do
+                  post :publish
+                  post :execute
+                  get :runs
+                end
+              end
+              resources :llm_providers do
+                post :test_connection, on: :member
+              end
+              resources :simulations, only: [:index, :show, :create]
+              resources :kb_proposals, only: [:index, :show, :update] do
+                post :merge, on: :member
+                post :reject, on: :member
+              end
+              resource :roi_report, only: [:show]
+            end
             resource :preferences, only: [:show, :update]
             resources :assistants do
               member do

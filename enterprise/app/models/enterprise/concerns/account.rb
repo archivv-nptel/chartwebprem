@@ -16,6 +16,14 @@ module Enterprise::Concerns::Account
     has_many :captain_documents, dependent: :destroy_async, class_name: 'Captain::Document'
     has_many :captain_custom_tools, dependent: :destroy_async, class_name: 'Captain::CustomTool'
     has_many :captain_agent_sessions, dependent: :destroy_async, class_name: 'Captain::AgentSession'
+    has_many :captain_action_approvals, dependent: :delete_all, class_name: 'Captain::ActionApproval'
+    has_many :captain_playbooks, dependent: :delete_all, class_name: 'Captain::Playbook'
+    has_many :captain_playbook_runs, dependent: :delete_all, class_name: 'Captain::PlaybookRun'
+    has_many :captain_llm_provider_configs, dependent: :delete_all, class_name: 'Captain::LlmProviderConfig'
+    has_many :captain_simulation_runs, dependent: :delete_all, class_name: 'Captain::SimulationRun'
+    has_many :captain_swarm_handoffs, dependent: :delete_all, class_name: 'Captain::SwarmHandoff'
+    has_many :captain_kb_proposals, dependent: :delete_all, class_name: 'Captain::KbProposal'
+    has_many :captain_resolution_events, dependent: :delete_all, class_name: 'Captain::ResolutionEvent'
     has_many :conversation_outcomes, dependent: :destroy_async
     has_many :conversation_monitors, class_name: 'ConversationMonitors::Monitor', dependent: :destroy_async
     has_many :monitor_automation_deliveries, class_name: 'ConversationMonitors::AutomationDelivery', dependent: :delete_all

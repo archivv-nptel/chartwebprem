@@ -16,6 +16,10 @@ class Captain::Tools::BasePublicTool < Agents::Tool
   end
 
   def execute(tool_context, **params)
+    if tool_context.state&.dig(Captain::Hitl::GatekeeperService::STATE_KEY)
+      return failure_result('Wait for the pending action approval before calling another tool.', tool_context.state)
+    end
+
     return super if read_only?
     return failure_result(NEWER_MESSAGE_ARRIVED, tool_context.state) if newer_customer_message_arrived?(tool_context.state)
 

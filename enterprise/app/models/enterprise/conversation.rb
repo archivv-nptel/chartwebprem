@@ -108,6 +108,19 @@ module Enterprise::Conversation
   def handle_resolved_status_change
     super
     update_applied_sla_completion
+    track_metered_status_change if saved_change_to_status?
+  end
+
+  def track_metered_status_change
+    tracker = Captain::Metering::ResolutionTracker.new(conversation: self)
+    if resolved?
+      actor = Current.executed_by || Current.user
+      tracker.record(actor: :human_agent) if actor.is_a?(User)
+    elsif status_before_last_save == 'resolved'
+      tracker.invalidate_reopen(resolved_at: status_changed_at_before_last_save)
+    end
+  rescue StandardError => e
+    ChatwootExceptionTracker.new(e, account: account).capture_exception
   end
 
   def update_applied_sla_completion

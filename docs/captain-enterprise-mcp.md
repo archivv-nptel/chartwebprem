@@ -1,0 +1,11 @@
+# Captain Enterprise MCP
+
+The outbound MCP registry remains under **Captain → Tools → MCP servers**. Enable the `captain_mcp_servers` account feature, select an assistant, and approve the exact definitions for the tools that assistant may use. The connection checks the resolved destination before each HTTP request, including OAuth requests. Use a reachable HTTPS endpoint with a valid certificate. The existing `SAFE_FETCH_ALLOW_PRIVATE_NETWORK` setting affects all SafeFetch consumers, so leave it off on installations that should only reach public hosts. Configure Chatwoot's Active Record encryption keys before storing MCP access tokens or OAuth credentials.
+
+Playbook calls use that same registry. A tool must be enabled for the assistant, and the remote definition must still match the one an administrator approved. Verified and fixed parameter values come from Chatwoot. Calls that can change external data require a human approval. If a call may have run before its connection failed, inspect the external system before retrying.
+
+The `captain_mcp_enterprise` account feature enables the inbound endpoint at `POST /api/v1/mcp`. Configure your MCP client for Streamable HTTP, supply the Chatwoot user API token as `Authorization: Bearer <token>`, and set `X-Chatwoot-Account-Id` to the numeric account ID. You can also supply the token with the `api_access_token` header. The user needs a membership in the selected active account and must satisfy its API access and MFA policy.
+
+The endpoint serves JSON responses. It supports `server/discover` for `2026-07-28` and `initialize` for versions `2025-11-25`, `2025-06-18`, and `2025-03-26`. It accepts initialization notifications without a response body and does not create a session or offer an SSE stream. Browser origins, when present, must match `FRONTEND_URL`. Clients can use `tools/list` to discover the request schemas.
+
+The tools search accessible conversations by contact name or email, add private notes as the authenticated user, and retrieve a contact's profile with accessible recent conversations. `resources/templates/list` advertises the conversation summary resource. `resources/read` enforces the account and conversation permissions on each request.

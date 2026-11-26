@@ -68,6 +68,8 @@ class ActionCableConnector extends BaseActionCableConnector {
       'copilot.message.created': this.onCopilotMessageCreated,
       // The store upserts by ID, so an updated approval card replaces the old one.
       'copilot.message.updated': this.onCopilotMessageCreated,
+      'captain.hitl.approval_requested': this.onCaptainApprovalChanged,
+      'captain.hitl.approval_updated': this.onCaptainApprovalChanged,
       'captain.playground.response': this.onCaptainPlaygroundResponse,
       'voice_call.incoming': this.onVoiceCallIncoming,
       'voice_call.accepted': this.onVoiceCallAccepted,
@@ -94,6 +96,11 @@ class ActionCableConnector extends BaseActionCableConnector {
 
   isAValidEvent = data => {
     return this.app.$store.getters.getCurrentAccountId === data.account_id;
+  };
+
+  // eslint-disable-next-line class-methods-use-this
+  onCaptainApprovalChanged = data => {
+    emitter.emit(BUS_EVENTS.CAPTAIN_APPROVAL_CHANGED, data);
   };
 
   onMessageUpdated = data => {

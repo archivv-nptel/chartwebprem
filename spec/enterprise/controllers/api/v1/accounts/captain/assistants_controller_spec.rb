@@ -585,19 +585,21 @@ RSpec.describe 'Api::V1::Accounts::Captain::Assistants', type: :request do
           }
         )
 
-        expect do
-          post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/playground",
-               params: enhanced_params,
-               headers: agent.create_new_auth_token,
-               as: :json
-        end.to have_enqueued_job(Captain::Playground::ResponseJob).with(
-          hash_including(
-            request: hash_including(
-              playground_config: enhanced_params[:playground_config].except(:ignored).stringify_keys,
-              playground_config_supplied: true
-            )
-          )
-        )
+        post "/api/v1/accounts/#{account.id}/captain/assistants/#{assistant.id}/playground",
+             params: enhanced_params,
+             headers: agent.create_new_auth_token,
+             as: :json
+
+        expect(response).to have_http_status(:accepted)
+        # Match by name because Rails can reload the job class while processing the request.
+        jobs = enqueued_jobs.select { |job| job.fetch(:job).name == 'Captain::Playground::ResponseJob' }
+        expect(jobs.length).to eq(1)
+        arguments = ActiveJob::Arguments.deserialize(jobs.first.fetch(:args))
+        expected_request = {
+          playground_config: enhanced_params[:playground_config].except(:ignored).stringify_keys,
+          playground_config_supplied: true
+        }
+        expect(arguments).to contain_exactly(a_hash_including(request: a_hash_including(expected_request)))
       end
     end
   end

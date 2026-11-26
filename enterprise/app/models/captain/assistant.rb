@@ -2,19 +2,28 @@
 #
 # Table name: captain_assistants
 #
-#  id                  :bigint           not null, primary key
-#  config              :jsonb            not null
-#  description         :text
-#  guardrails          :jsonb
-#  name                :string           not null
-#  response_guidelines :jsonb
-#  created_at          :datetime         not null
-#  updated_at          :datetime         not null
-#  account_id          :bigint           not null
+#  id                     :bigint           not null, primary key
+#  config                 :jsonb            not null
+#  description            :text
+#  guardrails             :jsonb
+#  name                   :string           not null
+#  response_guidelines    :jsonb
+#  swarm_capabilities     :jsonb            not null
+#  swarm_role             :string
+#  created_at             :datetime         not null
+#  updated_at             :datetime         not null
+#  account_id             :bigint           not null
+#  llm_provider_config_id :bigint
 #
 # Indexes
 #
-#  index_captain_assistants_on_account_id  (account_id)
+#  index_captain_assistants_on_account_id                 (account_id)
+#  index_captain_assistants_on_account_id_and_swarm_role  (account_id,swarm_role) UNIQUE WHERE (swarm_role IS NOT NULL)
+#  index_captain_assistants_on_llm_provider_config_id     (llm_provider_config_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (llm_provider_config_id => captain_llm_provider_configs.id) ON DELETE => nullify
 #
 class Captain::Assistant < ApplicationRecord
   DESCRIPTION_LENGTH_LIMIT = 500
@@ -34,6 +43,7 @@ class Captain::Assistant < ApplicationRecord
   self.table_name = 'captain_assistants'
 
   belongs_to :account
+  belongs_to :llm_provider_config, class_name: 'Captain::LlmProviderConfig', optional: true
   has_many :documents, class_name: 'Captain::Document', dependent: :destroy_async
   has_many :responses, class_name: 'Captain::AssistantResponse', dependent: :destroy_async
   has_many :faq_suggestions, class_name: 'Captain::FaqSuggestion', dependent: :destroy_async
@@ -65,6 +75,9 @@ class Captain::Assistant < ApplicationRecord
   validates :account_id, presence: true
   validates_with Captain::AudienceValidator
   validate :validate_response_window
+  validates :swarm_role, uniqueness: { scope: :account_id }, format: { with: /\A[a-z][a-z0-9_]{0,39}\z/ }, allow_nil: true,
+                         if: :will_save_change_to_swarm_role?
+  validates_with Captain::AssistantRoutingValidator
   validates :auto_resolve_mode, inclusion: { in: AUTO_RESOLVE_MODES }
   validates :send_inactivity_resolution_message, inclusion: { in: [true, false] }
   validates :auto_resolve_after,

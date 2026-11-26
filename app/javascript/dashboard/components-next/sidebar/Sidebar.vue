@@ -590,6 +590,36 @@ const menuItems = computed(() => {
           }),
         },
         {
+          name: 'captain_agentic_playbooks',
+          label: t('CAPTAIN.AGENTIC.NAV.PLAYBOOKS'),
+          activeOn: ['captain_agentic_playbooks'],
+          to: accountScopedRoute('captain_agentic_playbooks'),
+        },
+        {
+          name: 'captain_agentic_providers',
+          label: t('CAPTAIN.AGENTIC.NAV.PROVIDERS'),
+          activeOn: ['captain_agentic_providers'],
+          to: accountScopedRoute('captain_agentic_providers'),
+        },
+        {
+          name: 'captain_agentic_simulations',
+          label: t('CAPTAIN.AGENTIC.NAV.SIMULATIONS'),
+          activeOn: ['captain_agentic_simulations'],
+          to: accountScopedRoute('captain_agentic_simulations'),
+        },
+        {
+          name: 'captain_agentic_knowledge',
+          label: t('CAPTAIN.AGENTIC.NAV.KNOWLEDGE'),
+          activeOn: ['captain_agentic_knowledge'],
+          to: accountScopedRoute('captain_agentic_knowledge'),
+        },
+        {
+          name: 'captain_agentic_outcomes',
+          label: t('CAPTAIN.AGENTIC.NAV.OUTCOMES'),
+          activeOn: ['captain_agentic_outcomes'],
+          to: accountScopedRoute('captain_agentic_outcomes'),
+        },
+        {
           name: 'Settings',
           label: t('SIDEBAR.CAPTAIN_SETTINGS'),
           activeOn: [

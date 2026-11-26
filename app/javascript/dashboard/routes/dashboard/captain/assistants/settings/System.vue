@@ -2,6 +2,7 @@
 import { useI18n } from 'vue-i18n';
 import { useAssistantSettings } from './useAssistantSettings';
 import SettingsPageLayout from 'dashboard/components-next/captain/pageComponents/assistant/settings/SettingsPageLayout.vue';
+import AssistantRoutingSettingsForm from 'dashboard/components-next/captain/pageComponents/assistant/settings/AssistantRoutingSettingsForm.vue';
 import AssistantSystemSettingsForm from 'dashboard/components-next/captain/pageComponents/assistant/settings/AssistantSystemSettingsForm.vue';
 
 const { t } = useI18n();
@@ -16,6 +17,11 @@ const { assistant, updateAssistant } = useAssistantSettings();
     "
   >
     <AssistantSystemSettingsForm
+      :assistant="assistant"
+      @submit="updateAssistant"
+    />
+    <AssistantRoutingSettingsForm
+      v-if="assistant?.id"
       :assistant="assistant"
       @submit="updateAssistant"
     />

@@ -1,6 +1,7 @@
 class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   include Captain::Conversation::V2LifecycleEvents
   include Captain::Conversation::MessageBuilder
+  include Captain::Conversation::ApprovalGates
   include Captain::Conversation::ResponseLifecycleLogging
 
   MAX_MESSAGE_LENGTH = 10_000
@@ -18,6 +19,8 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     Current.executed_by = @assistant
 
     return log_pre_generation_discard if newer_customer_message_arrived?
+    return if playbook_handled?
+    return if existing_approval_for_turn?
 
     generate_response_with_v2
   rescue ActiveStorage::FileNotFoundError, Faraday::BadRequestError => e
@@ -34,16 +37,54 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   delegate :account, :inbox, to: :@conversation
 
   def generate_response_with_v2
-    runner_service = v2_runner_service
     message_history = Captain::Conversation::MessageHistoryBuilderService.new(conversation: @conversation).perform
+    return unless select_swarm_assistant(message_history)
+
+    runner_service = v2_runner_service
     @response = runner_service.generate_response(message_history: message_history)
     @run_result = runner_service.last_run_result
+    process_generated_response(runner_service)
+  end
+
+  def process_generated_response(runner_service)
+    return process_approval_response if approval_pending?
 
     @v2_handoff_tool_completed = runner_service.handoff_completed?
     return process_response if v2_handoff_tool_completed?
     return if runner_service.response_discarded? || newer_customer_message_arrived?
 
     process_response
+  end
+
+  def playbook_handled?
+    Captain::Playbooks::AutomaticRunService.new(
+      assistant: @assistant, conversation: @conversation, responding_to_message_id: @responding_to_message_id
+    ).handled?
+  end
+
+  def select_swarm_assistant(message_history)
+    return true unless account.feature_enabled?('captain_swarm_handoffs')
+
+    swarm = Captain::Swarm::OrchestratorService.new(conversation: @conversation, assistant: @assistant)
+    route = swarm.route(message_history: message_history)
+    return true if route.handoffs.empty?
+
+    @conversation.with_lock do
+      next false unless conversation_pending? && !newer_customer_message_arrived?
+
+      swarm.persist!(route)
+      next escalate_swarm_turn if route.assistant.nil?
+
+      @assistant = route.assistant
+      Current.executed_by = @assistant
+      true
+    end
+  end
+
+  def escalate_swarm_turn
+    @response = { 'action_reason' => 'swarm_handoff' }
+    process_failure_handoff
+    false
   end
 
   def v2_runner_service

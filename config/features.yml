@@ -333,3 +333,43 @@
   display_name: Sort conversations by last message
   enabled: true
   column: feature_flags_ext_1
+- name: captain_hitl_approvals
+  display_name: Captain Tool Approval Gates
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1
+- name: captain_mcp_enterprise
+  display_name: Captain MCP Endpoint
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1
+- name: captain_agentic_playbooks
+  display_name: Captain Playbooks
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1
+- name: captain_byom_routing
+  display_name: Captain Model Providers
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1
+- name: captain_simulations
+  display_name: Captain Simulations
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1
+- name: captain_swarm_handoffs
+  display_name: Captain Assistant Handoffs
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1
+- name: captain_self_healing_kb
+  display_name: Captain Knowledge Proposals
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1
+- name: captain_outcome_metering
+  display_name: Captain Outcome Metering
+  enabled: false
+  premium: true
+  column: feature_flags_ext_1

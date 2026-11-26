@@ -27,6 +27,9 @@ class Captain::ConversationEvents
         assistant: assistant,
         source: source
       )
+      Captain::Metering::ResolutionTracker.new(conversation: conversation).record(actor: :captain_ai, assistant: assistant)
+    rescue StandardError => e
+      ChatwootExceptionTracker.new(e, account: conversation.account).capture_exception
     end
 
     def response_completed(conversation:, assistant:, message:, at:)

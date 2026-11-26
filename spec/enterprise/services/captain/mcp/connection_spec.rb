@@ -2,7 +2,8 @@ require 'rails_helper'
 
 RSpec.describe Captain::Mcp::Connection do
   let(:server) { Captain::McpServer.new(id: 1, url: 'https://mcp.example.com/mcp', auth_type: 'none') }
-  let(:connection) { described_class.new(server) }
+  # Request specs can reload Rails constants after RSpec captures described_class.
+  let(:connection) { described_class.name.constantize.new(server) }
 
   # RubyLLM keeps the server info private, so a gem update that renames it fails here
   describe '#server_name' do
@@ -19,7 +20,7 @@ RSpec.describe Captain::Mcp::Connection do
       allow(connection.mcp).to receive(:tools).and_raise(NoMethodError, "undefined method 'fetch' for an instance of String")
       allow(ChatwootExceptionTracker).to receive(:new)
 
-      expect { connection.tool_definitions }.to raise_error(described_class::InvalidResponse, /could not read \(NoMethodError\)/)
+      expect { connection.tool_definitions }.to raise_error(Captain::Mcp::Connection::InvalidResponse, /could not read \(NoMethodError\)/)
       expect(ChatwootExceptionTracker).not_to have_received(:new)
     end
   end
@@ -73,9 +74,9 @@ RSpec.describe Captain::Mcp::Connection do
     end
 
     it 'stops a tool call that is still answering after the deadline, however the answer is spread' do
-      answer_slowly('tools/call', described_class::DEADLINE + 1)
+      answer_slowly('tools/call', Captain::Mcp::Connection::DEADLINE + 1)
 
-      expect { connection.call('get_customer', {}) }.to raise_error(described_class::DeadlineExceeded)
+      expect { connection.call('get_customer', {}) }.to raise_error(Captain::Mcp::Connection::DeadlineExceeded)
     end
 
     it 'gives a listing and a call each their own deadline' do
@@ -91,12 +92,12 @@ RSpec.describe Captain::Mcp::Connection do
 
       expect do
         RubyLLM::Support::Cancellation.watch(chat_cancelled) { connection.call('get_customer', {}) }
-      end.to raise_error(RubyLLM::CancelledError) { |error| expect(error).not_to be_a(described_class::DeadlineExceeded) }
+      end.to raise_error(RubyLLM::CancelledError) { |error| expect(error).not_to be_a(Captain::Mcp::Connection::DeadlineExceeded) }
     end
 
     # RubyLLM sends notifications/cancelled to a server on an older MCP revision only for a CancelledError
     it 'raises a deadline that RubyLLM treats as a cancellation' do
-      expect(described_class::DeadlineExceeded.new('late')).to be_a(RubyLLM::CancelledError)
+      expect(Captain::Mcp::Connection::DeadlineExceeded.new('late')).to be_a(RubyLLM::CancelledError)
     end
   end
 end

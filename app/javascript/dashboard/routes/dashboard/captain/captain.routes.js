@@ -221,6 +221,45 @@ const assistantRoutes = [
   },
 ];
 
+const agenticRoutes = [
+  {
+    path: frontendURL('accounts/:accountId/captain/operations/playbooks'),
+    name: 'captain_agentic_playbooks',
+    component: () => import('./agentic/Playbooks.vue'),
+    meta: {
+      ...adminMeta,
+      featureFlag: FEATURE_FLAGS.CAPTAIN_AGENTIC_PLAYBOOKS,
+    },
+  },
+  {
+    path: frontendURL('accounts/:accountId/captain/operations/model-providers'),
+    name: 'captain_agentic_providers',
+    component: () => import('./agentic/LlmProviders.vue'),
+    meta: { ...adminMeta, featureFlag: FEATURE_FLAGS.CAPTAIN_BYOM_ROUTING },
+  },
+  {
+    path: frontendURL('accounts/:accountId/captain/operations/simulations'),
+    name: 'captain_agentic_simulations',
+    component: () => import('./agentic/Simulations.vue'),
+    meta: { ...adminMeta, featureFlag: FEATURE_FLAGS.CAPTAIN_SIMULATIONS },
+  },
+  {
+    path: frontendURL(
+      'accounts/:accountId/captain/operations/knowledge-proposals'
+    ),
+    name: 'captain_agentic_knowledge',
+    component: () => import('./agentic/KbProposals.vue'),
+    meta: { ...adminMeta, featureFlag: FEATURE_FLAGS.CAPTAIN_SELF_HEALING_KB },
+  },
+  {
+    path: frontendURL('accounts/:accountId/captain/outcomes'),
+    name: 'captain_agentic_outcomes',
+    component: () =>
+      import('dashboard/components-next/captain/analytics/RoiDashboard.vue'),
+    meta: { ...adminMeta, featureFlag: FEATURE_FLAGS.CAPTAIN_OUTCOME_METERING },
+  },
+];
+
 export const routes = [
   {
     path: frontendURL('accounts/:accountId/captain'),
@@ -234,6 +273,6 @@ export const routes = [
         },
       };
     },
-    children: [...assistantRoutes],
+    children: [...agenticRoutes, ...assistantRoutes],
   },
 ];

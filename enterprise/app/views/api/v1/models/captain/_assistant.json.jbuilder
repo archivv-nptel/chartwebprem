@@ -12,3 +12,9 @@ json.id resource.id
 json.name resource.name
 json.response_guidelines resource.response_guidelines
 json.updated_at resource.updated_at.to_i
+
+json.llm_provider_config_id resource.llm_provider_config_id if Current.account&.feature_enabled?('captain_byom_routing')
+if Current.account&.feature_enabled?('captain_swarm_handoffs')
+  json.swarm_role resource.swarm_role
+  json.swarm_capabilities resource.swarm_capabilities
+end

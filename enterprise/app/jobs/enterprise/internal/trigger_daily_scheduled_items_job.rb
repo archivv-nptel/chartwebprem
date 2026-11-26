@@ -3,7 +3,10 @@ module Enterprise::Internal::TriggerDailyScheduledItemsJob
     super
 
     Captain::Documents::ScheduleSyncsJob.perform_later('enterprise')
-    Captain::Documents::ScheduleSyncsJob.perform_later('business') if business_auto_sync_due?
+    if business_auto_sync_due?
+      Captain::Documents::ScheduleSyncsJob.perform_later('business')
+      Captain::Knowledge::ScheduleGapDetectionJob.perform_later
+    end
     Captain::Documents::ScheduleSyncsJob.perform_later('startups') if startup_auto_sync_due?
   end
 

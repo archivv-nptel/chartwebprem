@@ -10,12 +10,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_11_25_100456) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_26_062812) do
   # These extensions should be enabled to support this database
+  enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
   enable_extension "pgcrypto"
-  enable_extension "plpgsql"
   enable_extension "vector"
 
   create_table "access_tokens", force: :cascade do |t|
@@ -421,6 +421,39 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_100456) do
     t.datetime "updated_at", precision: nil, null: false
   end
 
+  create_table "captain_action_approvals", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "assistant_id", null: false
+    t.bigint "reviewer_id"
+    t.bigint "playbook_run_id"
+    t.bigint "mcp_tool_id"
+    t.bigint "custom_tool_id"
+    t.string "tool_definition_digest"
+    t.bigint "responding_to_message_id"
+    t.string "tool_name", null: false
+    t.string "risk_level", default: "high", null: false
+    t.string "status", default: "pending", null: false
+    t.jsonb "proposed_arguments", default: {}, null: false
+    t.jsonb "modified_arguments"
+    t.jsonb "execution_result", default: {}
+    t.text "rationale"
+    t.text "rejection_reason"
+    t.datetime "expires_at", null: false
+    t.datetime "reviewed_at"
+    t.datetime "executed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status"], name: "index_captain_action_approvals_on_account_id_and_status"
+    t.index ["account_id"], name: "index_captain_action_approvals_on_account_id"
+    t.index ["assistant_id"], name: "index_captain_action_approvals_on_assistant_id"
+    t.index ["conversation_id"], name: "index_captain_action_approvals_on_conversation_id"
+    t.index ["custom_tool_id"], name: "index_captain_action_approvals_on_custom_tool_id"
+    t.index ["mcp_tool_id"], name: "index_captain_action_approvals_on_mcp_tool_id"
+    t.index ["playbook_run_id"], name: "index_captain_action_approvals_on_playbook_run_id"
+    t.index ["reviewer_id"], name: "index_captain_action_approvals_on_reviewer_id"
+  end
+
   create_table "captain_assistant_responses", force: :cascade do |t|
     t.string "question", null: false
     t.text "answer", null: false
@@ -448,7 +481,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_100456) do
     t.jsonb "config", default: {}, null: false
     t.jsonb "response_guidelines", default: []
     t.jsonb "guardrails", default: []
+    t.string "swarm_role"
+    t.jsonb "swarm_capabilities", default: [], null: false
+    t.bigint "llm_provider_config_id"
+    t.index ["account_id", "swarm_role"], name: "index_captain_assistants_on_account_id_and_swarm_role", unique: true, where: "(swarm_role IS NOT NULL)"
     t.index ["account_id"], name: "index_captain_assistants_on_account_id"
+    t.index ["llm_provider_config_id"], name: "index_captain_assistants_on_llm_provider_config_id"
   end
 
   create_table "captain_custom_tools", force: :cascade do |t|
@@ -538,6 +576,48 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_100456) do
     t.index ["inbox_id"], name: "index_captain_inboxes_on_inbox_id"
   end
 
+  create_table "captain_kb_proposals", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "portal_id", null: false
+    t.bigint "target_article_id"
+    t.bigint "reviewer_id"
+    t.string "proposal_type", null: false
+    t.string "status", default: "open", null: false
+    t.string "proposed_title", null: false
+    t.text "proposed_markdown", null: false
+    t.text "unified_diff"
+    t.jsonb "source_conversation_ids", default: [], null: false
+    t.string "target_article_digest"
+    t.string "source_digest"
+    t.float "confidence_score", default: 0.0, null: false
+    t.vector "cluster_centroid", limit: 1536
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "portal_id", "source_digest"], name: "idx_captain_kb_proposals_source", unique: true
+    t.index ["account_id"], name: "index_captain_kb_proposals_on_account_id"
+    t.index ["portal_id"], name: "index_captain_kb_proposals_on_portal_id"
+    t.index ["reviewer_id"], name: "index_captain_kb_proposals_on_reviewer_id"
+    t.index ["target_article_id"], name: "index_captain_kb_proposals_on_target_article_id"
+  end
+
+  create_table "captain_llm_provider_configs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "provider_type", null: false
+    t.string "model_id", null: false
+    t.string "endpoint_url"
+    t.string "region"
+    t.text "encrypted_credentials"
+    t.boolean "zero_data_retention", default: false, null: false
+    t.integer "priority", default: 1, null: false
+    t.boolean "enabled", default: true, null: false
+    t.jsonb "routing_rules", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "priority"], name: "index_captain_llm_provider_configs_on_account_id_and_priority"
+    t.index ["account_id"], name: "index_captain_llm_provider_configs_on_account_id"
+  end
+
   create_table "captain_mcp_servers", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "assistant_id", null: false
@@ -589,6 +669,62 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_100456) do
     t.index ["user_id"], name: "index_captain_message_reports_on_user_id"
   end
 
+  create_table "captain_playbook_runs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "playbook_id", null: false
+    t.bigint "conversation_id"
+    t.string "status", default: "running", null: false
+    t.string "current_node_id"
+    t.jsonb "context_state", default: {}, null: false
+    t.jsonb "execution_trace", default: [], null: false
+    t.jsonb "graph_snapshot", default: {}, null: false
+    t.bigint "trigger_message_id"
+    t.boolean "dry_run", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_captain_playbook_runs_on_account_id"
+    t.index ["conversation_id"], name: "index_captain_playbook_runs_on_conversation_id"
+    t.index ["playbook_id", "trigger_message_id"], name: "idx_captain_playbook_runs_trigger", unique: true, where: "(trigger_message_id IS NOT NULL)"
+    t.index ["playbook_id"], name: "index_captain_playbook_runs_on_playbook_id"
+  end
+
+  create_table "captain_playbooks", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "assistant_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.integer "version", default: 1, null: false
+    t.string "status", default: "draft", null: false
+    t.jsonb "trigger_conditions", default: {}, null: false
+    t.jsonb "graph_definition", default: {"edges" => [], "nodes" => []}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_captain_playbooks_on_account_id"
+    t.index ["assistant_id"], name: "index_captain_playbooks_on_assistant_id"
+  end
+
+  create_table "captain_resolution_events", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "assistant_id"
+    t.string "resolution_actor", null: false
+    t.string "verification_status", default: "pending", null: false
+    t.decimal "estimated_human_cost_usd", precision: 10, scale: 2, default: "6.5"
+    t.decimal "billable_fee_usd", precision: 10, scale: 4, default: "0.0"
+    t.integer "csat_rating"
+    t.string "stripe_meter_event_id"
+    t.datetime "episode_started_at", null: false
+    t.datetime "resolved_at", null: false
+    t.datetime "verified_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "verification_status", "resolved_at"], name: "idx_captain_resolutions_account_status_date"
+    t.index ["account_id"], name: "index_captain_resolution_events_on_account_id"
+    t.index ["assistant_id"], name: "index_captain_resolution_events_on_assistant_id"
+    t.index ["conversation_id", "resolved_at"], name: "idx_on_conversation_id_resolved_at_42637f14b3", unique: true
+    t.index ["conversation_id"], name: "index_captain_resolution_events_on_conversation_id"
+  end
+
   create_table "captain_scenarios", force: :cascade do |t|
     t.string "title"
     t.text "description"
@@ -603,6 +739,61 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_100456) do
     t.index ["assistant_id", "enabled"], name: "index_captain_scenarios_on_assistant_id_and_enabled"
     t.index ["assistant_id"], name: "index_captain_scenarios_on_assistant_id"
     t.index ["enabled"], name: "index_captain_scenarios_on_enabled"
+  end
+
+  create_table "captain_simulation_results", force: :cascade do |t|
+    t.bigint "simulation_run_id", null: false
+    t.bigint "conversation_id", null: false
+    t.text "simulated_response"
+    t.jsonb "simulated_tool_calls", default: [], null: false
+    t.boolean "projected_deflection", default: false, null: false
+    t.float "hallucination_score", default: 0.0, null: false
+    t.float "policy_adherence_score", default: 1.0, null: false
+    t.text "judge_rationale"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id"], name: "index_captain_simulation_results_on_conversation_id"
+    t.index ["simulation_run_id", "conversation_id"], name: "idx_captain_simulation_results_run_conversation", unique: true
+    t.index ["simulation_run_id"], name: "index_captain_simulation_results_on_simulation_run_id"
+  end
+
+  create_table "captain_simulation_runs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "assistant_id", null: false
+    t.bigint "playbook_id"
+    t.bigint "created_by_id"
+    t.string "status", default: "queued", null: false
+    t.jsonb "candidate_config", default: {}, null: false
+    t.jsonb "ticket_ids", default: [], null: false
+    t.jsonb "ticket_filter", default: {}, null: false
+    t.integer "total_tickets", default: 0, null: false
+    t.integer "processed_tickets", default: 0, null: false
+    t.jsonb "aggregate_metrics", default: {}, null: false
+    t.datetime "started_at"
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_captain_simulation_runs_on_account_id"
+    t.index ["assistant_id"], name: "index_captain_simulation_runs_on_assistant_id"
+    t.index ["created_by_id"], name: "index_captain_simulation_runs_on_created_by_id"
+    t.index ["playbook_id"], name: "index_captain_simulation_runs_on_playbook_id"
+  end
+
+  create_table "captain_swarm_handoffs", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "conversation_id", null: false
+    t.bigint "from_assistant_id"
+    t.bigint "to_assistant_id"
+    t.string "handoff_type", null: false
+    t.integer "hop_count", default: 1, null: false
+    t.jsonb "structured_context", default: {}, null: false
+    t.text "root_cause_brief"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_captain_swarm_handoffs_on_account_id"
+    t.index ["conversation_id"], name: "index_captain_swarm_handoffs_on_conversation_id"
+    t.index ["from_assistant_id"], name: "index_captain_swarm_handoffs_on_from_assistant_id"
+    t.index ["to_assistant_id"], name: "index_captain_swarm_handoffs_on_to_assistant_id"
   end
 
   create_table "categories", force: :cascade do |t|
@@ -1892,6 +2083,37 @@ ActiveRecord::Schema[7.1].define(version: 2026_11_25_100456) do
   add_foreign_key "campaign_recipients", "campaigns", on_delete: :cascade
   add_foreign_key "campaign_recipients", "contacts", on_delete: :cascade
   add_foreign_key "campaign_recipients", "inboxes", on_delete: :cascade
+  add_foreign_key "captain_action_approvals", "accounts", on_delete: :cascade
+  add_foreign_key "captain_action_approvals", "captain_assistants", column: "assistant_id", on_delete: :cascade
+  add_foreign_key "captain_action_approvals", "captain_custom_tools", column: "custom_tool_id", on_delete: :nullify
+  add_foreign_key "captain_action_approvals", "captain_mcp_tools", column: "mcp_tool_id", on_delete: :nullify
+  add_foreign_key "captain_action_approvals", "captain_playbook_runs", column: "playbook_run_id", on_delete: :nullify
+  add_foreign_key "captain_action_approvals", "conversations", on_delete: :cascade
+  add_foreign_key "captain_action_approvals", "users", column: "reviewer_id", on_delete: :nullify
+  add_foreign_key "captain_assistants", "captain_llm_provider_configs", column: "llm_provider_config_id", on_delete: :nullify
+  add_foreign_key "captain_kb_proposals", "accounts", on_delete: :cascade
+  add_foreign_key "captain_kb_proposals", "articles", column: "target_article_id", on_delete: :nullify
+  add_foreign_key "captain_kb_proposals", "portals", on_delete: :cascade
+  add_foreign_key "captain_kb_proposals", "users", column: "reviewer_id", on_delete: :nullify
+  add_foreign_key "captain_llm_provider_configs", "accounts", on_delete: :cascade
+  add_foreign_key "captain_playbook_runs", "accounts", on_delete: :cascade
+  add_foreign_key "captain_playbook_runs", "captain_playbooks", column: "playbook_id", on_delete: :cascade
+  add_foreign_key "captain_playbook_runs", "conversations", on_delete: :cascade
+  add_foreign_key "captain_playbooks", "accounts", on_delete: :cascade
+  add_foreign_key "captain_playbooks", "captain_assistants", column: "assistant_id", on_delete: :cascade
+  add_foreign_key "captain_resolution_events", "accounts", on_delete: :cascade
+  add_foreign_key "captain_resolution_events", "captain_assistants", column: "assistant_id", on_delete: :nullify
+  add_foreign_key "captain_resolution_events", "conversations", on_delete: :cascade
+  add_foreign_key "captain_simulation_results", "captain_simulation_runs", column: "simulation_run_id", on_delete: :cascade
+  add_foreign_key "captain_simulation_results", "conversations", on_delete: :cascade
+  add_foreign_key "captain_simulation_runs", "accounts", on_delete: :cascade
+  add_foreign_key "captain_simulation_runs", "captain_assistants", column: "assistant_id", on_delete: :cascade
+  add_foreign_key "captain_simulation_runs", "captain_playbooks", column: "playbook_id", on_delete: :nullify
+  add_foreign_key "captain_simulation_runs", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "captain_swarm_handoffs", "accounts", on_delete: :cascade
+  add_foreign_key "captain_swarm_handoffs", "captain_assistants", column: "from_assistant_id", on_delete: :nullify
+  add_foreign_key "captain_swarm_handoffs", "captain_assistants", column: "to_assistant_id", on_delete: :nullify
+  add_foreign_key "captain_swarm_handoffs", "conversations", on_delete: :cascade
   add_foreign_key "conversation_monitor_daily_usages", "accounts", on_delete: :cascade
   add_foreign_key "conversation_monitor_evaluations", "accounts", on_delete: :cascade
   add_foreign_key "conversation_monitor_evaluations", "conversation_monitors", column: "monitor_id", on_delete: :cascade

@@ -141,7 +141,7 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     assistant_config_attributes += [:auto_resolve_after, :send_inactivity_resolution_message]
 
     permitted = params.require(:assistant).permit(:name, :description, :avatar,
-                                                  config: assistant_config_attributes)
+                                                  *agentic_assistant_attributes, config: assistant_config_attributes)
 
     # Handle array parameters separately to allow partial updates
     permitted[:response_guidelines] = params[:assistant][:response_guidelines] if params[:assistant].key?(:response_guidelines)
@@ -151,6 +151,13 @@ class Api::V1::Accounts::Captain::AssistantsController < Api::V1::Accounts::Base
     permit_audience_config(permitted)
 
     permitted
+  end
+
+  def agentic_assistant_attributes
+    attributes = []
+    attributes << :llm_provider_config_id if Current.account.feature_enabled?('captain_byom_routing')
+    attributes += [:swarm_role, { swarm_capabilities: [] }] if Current.account.feature_enabled?('captain_swarm_handoffs')
+    attributes
   end
 
   # The audience is a recursive condition tree that strong params can't whitelist by shape;

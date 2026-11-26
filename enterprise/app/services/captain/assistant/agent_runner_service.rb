@@ -39,6 +39,8 @@ class Captain::Assistant::AgentRunnerService
     run_agents_with_leak_retry(message_history)
 
     record_turn_start(@last_run_result)
+    return {} if approval_pending?
+
     @last_run_result = rewrite_oversized_response(@last_run_result) if response_too_long?(@last_run_result)
 
     raise "Captain response exceeds the channel limit of #{message_length_limit} characters" if response_too_long?(@last_run_result)
@@ -61,6 +63,8 @@ class Captain::Assistant::AgentRunnerService
 
   def run_agents_with_leak_retry(message_history)
     run_agents(message_history)
+    return if approval_pending?
+
     # A retry replays the whole turn, so it would repeat any tool that already ran, such as a custom HTTP POST.
     # It is also wasted once a newer customer message has discarded this turn.
     run_agents(message_history) if leaked_tool_call? && !@tool_executed && !response_discarded?
@@ -70,7 +74,11 @@ class Captain::Assistant::AgentRunnerService
   def run_agents(message_history)
     message_to_process, context = run_payload(message_history)
     @last_run_result = runner.run(message_to_process, context: context, max_turns: 10)
-    raise @last_run_result.error if @last_run_result.error
+    raise @last_run_result.error if @last_run_result.error && !approval_pending?
+  end
+
+  def approval_pending?
+    @last_run_result.context&.dig(:state, Captain::Hitl::GatekeeperService::STATE_KEY)
   end
 
   def leaked_tool_call?(run_result = @last_run_result)
@@ -198,12 +206,22 @@ class Captain::Assistant::AgentRunnerService
 
   def runner
     @runner ||= begin
-      configured_runner = Agents::Runner.with_agents(*build_and_wire_agents)
+      configured_runner = build_runner(build_and_wire_agents)
       configured_runner = add_usage_metadata_callback(configured_runner)
       configured_runner = add_callbacks_to_runner(configured_runner) if @callbacks.any?
-      install_instrumentation(configured_runner)
+      install_instrumentation(configured_runner) unless byom_routing?
       configured_runner
     end
+  end
+
+  def build_runner(agents)
+    return Captain::Llm::RoutedAgentRunner.new(agents, assistant: @assistant) if byom_routing?
+
+    Agents::Runner.with_agents(*agents)
+  end
+
+  def byom_routing?
+    @assistant.account.feature_enabled?('captain_byom_routing')
   end
 
   def run_payload(message_history)
